@@ -1,0 +1,111 @@
+name: Deploy frontend
+
+# main 에 머지되면 frontend 이미지를 빌드해 GHCR 에 올리고, 서버에서 client 컨테이너만 교체한다.
+# (db, backend, nginx 는 건드리지 않는다. compose/nginx 설정은 academy-infra 에서 관리)
+#
+# 필요한 시크릿: NEXT_PUBLIC_API_URL, SERVER_HOST, SSH_PRIVATE_KEY
+# 서버 선행 조건: /home/ubuntu/academy-infra (clone + .env + nginx/ssl)
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
+  workflow_dispatch:
+
+# 배포가 겹치지 않도록 — 진행 중인 배포는 끝까지 두고 다음 배포를 줄 세운다
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+env:
+  # GHCR 이미지 이름은 소문자여야 한다 (조직 이름이 대문자를 포함하므로 고정값으로 쓴다)
+  IMAGE: ghcr.io/heungkuk-academy/academy-frontend
+
+jobs:
+  # ── 이미지 빌드 ─────────────────────────────────────────────
+  # ubuntu-24.04-arm = GitHub ARM 러너. 서버가 ARM 이라 여기서 네이티브로 빌드해야
+  # QEMU 에뮬레이션(5~10배 느림)을 피한다. public 레포에서 무료다.
+  build:
+    name: Build and push image
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          # NEXT_PUBLIC_* 는 빌드 시점에 번들에 박히므로 여기서 주입해야 한다 (바꾸려면 다시 빌드)
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 배포 ────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to server
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/ubuntu/academy-infra
+
+            # client 만 교체 — 항상 서비스 이름을 지정하고 --no-deps 로 다른 서비스를 건드리지 않는다
+            ./compose.sh pull client
+            ./compose.sh up -d --no-deps client
+
+            # nginx 는 upstream(frontend) 이름을 시작·reload 때만 해석하므로 컨테이너 재생성 직후 reload 한다
+            # (reload 는 기존 연결을 끊지 않고, 설정이 잘못되면 기존 설정을 유지한다.
+            #  앱이 늦게 뜨거나 아래 확인이 실패해도 nginx 가 이전 IP 를 쥐고 있지 않도록 확인보다 먼저 한다)
+            docker exec hka-nginx nginx -s reload
+
+            # 기동 확인 — 컨테이너 안에서 3000 포트가 응답할 때까지 대기 (최대 약 60초)
+            OK=0
+            for i in $(seq 1 20); do
+              if docker exec frontend wget -q -O /dev/null http://127.0.0.1:3000/ 2>/dev/null; then
+                OK=1
+                break
+              fi
+              sleep 3
+            done
+
+            if [ "$OK" != "1" ]; then
+              echo "기동 확인 실패: frontend 가 3000 포트에서 응답하지 않습니다."
+              ./compose.sh logs --tail=50 client
+              exit 1
+            fi
+            echo "frontend 응답 확인"
+
+            # 안 쓰는 이미지 정리 — 어떤 컨테이너도 쓰지 않고 만든 지 7일 지난 이미지
+            # (최근 7일 이미지는 롤백용으로 남김, 오래된 이미지는 GHCR 에서 SHA 태그로 다시 받을 수 있음)
+            docker image prune -af --filter "until=168h"
