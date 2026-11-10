@@ -109,7 +109,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 - 커밋 메시지: `<type>: <제목>` (예: `feat: 예약 목록 검색 조건 추가`)
 - type: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
 - 배포: `develop` push → 맥미니 테스트 서버(`:develop`), `main` push → 운영 서버(`:latest`). `client` 컨테이너만 교체한다.
-- - 무조건 완성 후 커밋하지말고 사용자에게 물어본다.
+   무조건 완성 후 커밋하지말고 사용자에게 물어본다.
 
 
 ## 응답 선호도
