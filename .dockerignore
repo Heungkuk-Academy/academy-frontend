@@ -1,0 +1,20 @@
+# 이미지에 들어가면 안 되는 것 (환경 변수는 빌드 인자로만 주입한다)
+.env
+.env.*
+.git
+.github
+.gitignore
+.dockerignore
+Dockerfile
+
+# 이미지 안에서 새로 만든다
+node_modules
+.next
+out
+
+# 불필요
+*.md
+.DS_Store
+.idea
+.vscode
+npm-debug.log*

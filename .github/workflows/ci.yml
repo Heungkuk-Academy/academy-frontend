@@ -1,0 +1,39 @@
+name: CI
+
+# PR 이 열리면 lint 와 빌드가 되는지 확인한다 (테스트 코드는 아직 없음)
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+# 같은 PR 에 새 push 가 들어오면 진행 중인 검사는 취소한다
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # 검사용 더미 값 (실제 배포 이미지는 deploy 워크플로가 시크릿으로 빌드한다)
+          NEXT_PUBLIC_API_URL: http://localhost:8888
+          NEXT_TELEMETRY_DISABLED: 1
