@@ -1,12 +1,7 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 이 프로젝트는 흥국생명 연수원 예약 관리 시스템의 웹 프론트엔드입니다.
 관리자용 예약 · 일정 · 식수 · 숙박 · 설문 관리 화면과 고객용 공개 설문 페이지를 제공합니다.
-API 서버는 `academy-backend`, compose · nginx 등 운영 설정은 `academy-infra` 레포에 있습니다.
 
 
 ## Tech Stack
@@ -19,16 +14,6 @@ API 서버는 `academy-backend`, compose · nginx 등 운영 설정은 `academy-
 - docx, xlsx (견적서 · 예약 목록 파일 생성), react-datepicker, date-fns
 - lucide-react (아이콘), @hyunbinseo/holidays-kr (공휴일)
 
-
-## 명령어
-
-- 개발 서버: `npm run dev` (포트 **3100**)
-- 린트: `npm run lint`
-- 빌드: `npm run build` (타입 검사 포함)
-- PR 전 필수: `npm run lint && npm run build` (CI `Lint and build` 와 동일)
-- 테스트 코드는 아직 없다.
-- 환경변수: `.env.local` 에 `NEXT_PUBLIC_API_URL` (로컬 백엔드는 `http://localhost:8888`)
-  - `NEXT_PUBLIC_*` 는 빌드 시점에 번들에 박힌다. 값을 바꾸면 다시 빌드해야 하고, Docker 이미지도 환경별로 따로 빌드한다.
 
 
 ## Coding Conventions
@@ -86,6 +71,7 @@ export async function getSettings(): Promise<Record<string, string>> {
 
 - 경로: 관리자 API 는 `/v1/admin/...`, 공개 설문 API 는 `/v1/survey/...`
 - 관리자 API 는 반드시 `lib/api/instance.ts` 의 `instance` 를 쓴다 (토큰 첨부 · 401 재발급 처리). 공개 설문 API 만 기본 `axios` 를 쓴다.
+- API연결시 Docs 레포에 있는 API문서를 확인하고 연결한다.
 
 ### 에러 처리
 - 서버가 보낸 메시지가 있으면 우선 보여주고, 없으면 한국어 기본 메시지를 쓴다.
@@ -115,10 +101,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 ```
 
 
-## 테스트 규칙
-- 테스트 코드는 아직 없다. 변경 후 `npm run lint && npm run build` 통과를 확인하고, 화면 변경은 `npm run dev` 로 직접 확인한다.
-
-
 ## Git 규칙
 - `main`: 운영 배포 기준. 직접 커밋 금지
 - `develop`: 작업 브랜치는 여기서 분기하고, PR도 `develop`으로 올린다
@@ -127,6 +109,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 - 커밋 메시지: `<type>: <제목>` (예: `feat: 예약 목록 검색 조건 추가`)
 - type: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
 - 배포: `develop` push → 맥미니 테스트 서버(`:develop`), `main` push → 운영 서버(`:latest`). `client` 컨테이너만 교체한다.
+- - 무조건 완성 후 커밋하지말고 사용자에게 물어본다.
 
 
 ## 응답 선호도
