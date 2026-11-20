@@ -14,7 +14,7 @@ import {
 } from "@/lib/api/reservation";
 import { getDisabledClassrooms } from "@/lib/api/settings";
 import { isAdmin } from "@/lib/utils/auth";
-import { formatMonthDay, toChipColor } from "@/lib/utils/dashboard";
+import { toChipColor } from "@/lib/utils/dashboard";
 import { printSchedulerWeekly } from "@/lib/utils/printRoomTable";
 import { Reservation } from "@/types/reservation";
 import { isHoliday } from "@hyunbinseo/holidays-kr";
@@ -425,14 +425,6 @@ export default function SchedulerPage() {
     return runs;
   };
 
-  const barLabel = (run: Run) => {
-    const { res, cutL, cutR } = run;
-    const from = formatMonthDay(res.startDate);
-    const to = formatMonthDay(res.endDate);
-    const range = cutL && cutR ? `${from}~${to}` : cutL ? `${from}~` : cutR ? `~${to}` : "";
-    return `${cutL ? "‹ " : ""}${res.organization}${range ? ` · ${range}` : ""}${cutR ? " ›" : ""}`;
-  };
-
   const renderBar = (run: Run, roomLabel: string, key: string) => {
     const color = toChipColor(run.res.colorCode);
     const style = {
@@ -452,7 +444,7 @@ export default function SchedulerPage() {
             isAdmin() ? setEditTarget(run.res) : setDetailTarget(run.res)
           }
         >
-          {barLabel(run)}
+          {run.res.organization}
         </button>
       </ReservationTooltip>
     );
