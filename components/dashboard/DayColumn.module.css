@@ -15,8 +15,8 @@
 .weekend { background: var(--d-weekend); }
 
 /* 오늘 칸 — 주말 배경보다 우선한다 */
-.today { background: var(--d-accent-soft); }
-.today .day { color: var(--d-accent); }
+.today { background: var(--d-today); }
+.today .day { color: var(--d-warn-fg); }
 .today .todayTag { color: var(--d-text); font-weight: 600; }
 
 .head {
