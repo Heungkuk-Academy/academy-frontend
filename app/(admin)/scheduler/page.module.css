@@ -261,6 +261,13 @@
   gap: 6px;
   padding: 0 10px 0 76px;
 }
+/* 행에 마우스를 올리면 호실·정원 칸 강조 (design-v2 개편 때 빠진 동작 복구) */
+.roomRow .label {
+  align-self: stretch;
+  align-items: center;
+  transition: background 0.1s;
+}
+.roomRow:hover .label { background: var(--d-accent-soft); }
 .roomNo { font-size: 13px; font-weight: 700; color: var(--d-text); line-height: 1.2; }
 .roomCap { font-size: 11.5px; color: var(--d-muted); line-height: 1.2; }
 
